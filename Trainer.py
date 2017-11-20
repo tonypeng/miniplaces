@@ -5,7 +5,7 @@ import tensorflow as tf
 from DataLoader import *
 
 class Trainer:
-    def __init__(self, net_name, data_root, train_data_list, train_data_h5, val_data_list, train_data_h5,
+    def __init__(self, net_name, data_root, train_data_list, train_data_h5, val_data_list, val_data_h5,
                  load_size, fine_size, data_mean, optimizer, learning_rate,
                  rmsprop_decay, rmsprop_momentum, epsilon,
                  iterations,
