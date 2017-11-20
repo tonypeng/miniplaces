@@ -29,7 +29,8 @@ data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
                             if args.center_mean else np.zeros(3))
 
 trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
-                    args.val_data_list, args.load_size, args.fine_size,
+                    args.train_data_h5, args.val_data_list, args.val_data_h5, 
+                    args.load_size, args.fine_size,
                     data_mean, args.optimizer, args.learning_rate,
                     args.rmsprop_decay, args.rmsprop_momentum, args.epsilon,
                     args.iterations,
