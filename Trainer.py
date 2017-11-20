@@ -37,6 +37,7 @@ class Trainer:
 
         # Construct dataloader
         opt_data_train = {
+            'data_h5':self.train_data_h5,
             'data_root': self.data_root,
             'data_list': self.train_data_list,
             'load_size': self.load_size,
@@ -45,6 +46,7 @@ class Trainer:
             'randomize': True
         }
         opt_data_val = {
+            'data_h5':self.val_data_h5,
             'data_root': self.data_root,
             'data_list': self.val_data_list,
             'load_size': self.load_size,
@@ -53,8 +55,10 @@ class Trainer:
             'randomize': False
         }
 
-        loader_train = DataLoaderDisk(**opt_data_train)
-        loader_val = DataLoaderDisk(**opt_data_val)
+        # loader_train = DataLoaderDisk(**opt_data_train)
+        # loader_val = DataLoaderDisk(**opt_data_val)
+        loader_train = DataLoaderH5(**opt_data_train)
+        loader_val = DataLoaderH5(**opt_data_val)
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
