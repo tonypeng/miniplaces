@@ -10,8 +10,8 @@ class Trainer:
                  rmsprop_decay, momentum, epsilon,
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
-                 val_loss_iter_print, checkpoint_iterations
-                 checkpoint_name, checkpoint_step):
+                 val_loss_iter_print, checkpoint_iterations,
+                 checkpoint_name, checkpoint_step, model_name):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -35,6 +35,7 @@ class Trainer:
         self.checkpoint_iterations = checkpoint_iterations
         self.checkpoint_name = checkpoint_name
         self.checkpoint_step = checkpoint_step
+        self.model_name = model_name
 
     def train(self):
         # =================================
@@ -77,7 +78,8 @@ class Trainer:
             keep_dropout = tf.placeholder(tf.float32)
             is_training = tf.placeholder(tf.bool, name='is_training')
 
-            net = self._construct_net(x, keep_dropout, is_training)
+            with tf.variable_scope(self.model_name):
+                net = self._construct_net(x, keep_dropout, is_training)
 
             losses = 0
             for outp in net:
@@ -96,8 +98,8 @@ class Trainer:
             saver = tf.train.Saver(max_to_keep=5)
 
             it = 0
-            if len(checkpoint_name)>1:
-                saver.restore(sess, checkpoint_name)
+            if len(self.checkpoint_name)>1:
+                saver.restore(sess, self.checkpoint_name)
                 it = self.checkpoint_step
             else:
                 sess.run(tf.global_variables_initializer())
