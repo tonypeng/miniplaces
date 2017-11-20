@@ -122,9 +122,9 @@ class Trainer:
                     print("              Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 else:
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
-                if step % step_save == 0:
+                if it % step_save == 0:
                     saver.save(sess, path_save, global_step=it, max_to_keep=5)
-                    print("Model saved at Iter %d !" %(step))
+                    print("Model saved at Iter %d !" %(it))
 
 
     def _log(self, *args, **kwargs):
