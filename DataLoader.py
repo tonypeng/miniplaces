@@ -34,9 +34,13 @@ class DataLoaderH5(object):
             image = self.im_set[self._idx]
             image = image.astype(np.float32)/255. - self.data_mean
             if self.randomize:
-                flip = np.random.random_integers(0, 1)
-                if flip>0:
+                flip = np.random.random_integers(0, 3)
+                if flip == 1:
                     image = image[:,::-1,:]
+                elif flip == 2:
+                    image = image[::-1,:,:]
+                elif flip == 3:
+                    image = image[::-1,::-1,:]
                 offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
                 offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
             else:
@@ -104,9 +108,13 @@ class DataLoaderDisk(object):
             image = image.astype(np.float32)/255.
             image = image - self.data_mean
             if self.randomize:
-                flip = np.random.random_integers(0, 1)
-                if flip>0:
+                flip = np.random.random_integers(0, 3)
+                if flip == 1:
                     image = image[:,::-1,:]
+                elif flip == 2:
+                    image = image[::-1,:,:]
+                elif flip == 3:
+                    image = image[::-1,::-1,:]
                 offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
                 offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
             else:
