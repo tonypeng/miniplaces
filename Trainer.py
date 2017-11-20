@@ -10,7 +10,8 @@ class Trainer:
                  rmsprop_decay, momentum, epsilon,
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
-                 val_loss_iter_print, checkpoint_iterations):
+                 val_loss_iter_print, checkpoint_iterations
+                 checkpoint_name, checkpoint_step):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -32,6 +33,8 @@ class Trainer:
         self.verbose = verbose
         self.val_loss_iter_print = val_loss_iter_print
         self.checkpoint_iterations = checkpoint_iterations
+        self.checkpoint_name = checkpoint_name
+        self.checkpoint_step = checkpoint_step
 
     def train(self):
         # =================================
@@ -90,12 +93,16 @@ class Trainer:
             accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 1), tf.float32)) * 100
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
 
-            sess.run(tf.global_variables_initializer())
-
             saver = tf.train.Saver(max_to_keep=5)
 
             it = 0
-            for it in range(self.iterations):
+            if len(checkpoint_name)>1:
+                saver.restore(sess, checkpoint_name)
+                it = self.checkpoint_step
+            else:
+                sess.run(tf.global_variables_initializer())
+
+            while(it < self.iterations):
                 images_batch, labels_batch = loader_train.next_batch(self.batch_size)
 
                 sess.run(optimize,
@@ -125,6 +132,7 @@ class Trainer:
                 if it % self.checkpoint_iterations == 0:
                     saver.save(sess, path_save, global_step=it)
                     print("Model saved at Iter %d !" %(it))
+                it += 1
 
 
     def _log(self, *args, **kwargs):

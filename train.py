@@ -24,6 +24,8 @@ parser.add_argument('--device', type=str, default='/gpu:0')
 parser.add_argument('--verbose', type=bool, default=True)
 parser.add_argument('--val_loss_iter_print', type=int, default=10)
 parser.add_argument('--checkpoint_iterations', type=int, default=1000)
+parser.add_argument('--checkpoint_name', type=str, default='/checkpoints/-16000')
+parser.add_argument('--checkpoint_step', type=int, default=16000)
 args = parser.parse_args()
 
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
@@ -37,5 +39,6 @@ trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
                     args.iterations,
                     args.batch_size, args.dropout_keep_prob, args.device,
                     args.verbose, args.val_loss_iter_print,
-                    args.checkpoint_iterations)
+                    args.checkpoint_iterations
+                    args.checkpoint_name, args.checkpoint_step)
 trainer.train()
