@@ -25,11 +25,11 @@ class DataLoaderH5(object):
 
         self.shuffle()
         self._idx = 0
-        
+
     def next_batch(self, batch_size):
         labels_batch = np.zeros(batch_size)
-        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3)) 
-        
+        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3))
+
         for i in range(batch_size):
             image = self.im_set[self._idx]
             image = image.astype(np.float32)/255. - self.data_mean
@@ -45,15 +45,15 @@ class DataLoaderH5(object):
 
             images_batch[i, ...] = image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
             labels_batch[i, ...] = self.lab_set[self._idx]
-            
+
             self._idx += 1
             if self._idx == self.num:
                 self._idx = 0
                 if self.randomize:
                     self.shuffle()
-        
+
         return images_batch, labels_batch
-    
+
     def size(self):
         return self.num
 
@@ -62,7 +62,7 @@ class DataLoaderH5(object):
 
     def shuffle(self):
         perm = np.random.permutation(self.num)
-        self.im_set = self.im_set[perm] 
+        self.im_set = self.im_set[perm]
         self.lab_set = self.lab_set[perm]
 
 # Loading data from disk
@@ -80,7 +80,7 @@ class DataLoaderDisk(object):
         self.list_lab = []
         with open(kwargs['data_list'], 'r') as f:
             for line in f:
-                path, lab =line.rstrip().split(' ')
+                path, lab = line.rstrip().split(' ')
                 self.list_im.append(os.path.join(self.data_root, path))
                 self.list_lab.append(int(lab))
         self.list_im = np.array(self.list_im, np.object)
@@ -89,14 +89,14 @@ class DataLoaderDisk(object):
         print('# Images found:', self.num)
 
         # permutation
-        perm = np.random.permutation(self.num) 
+        perm = np.random.permutation(self.num)
         self.list_im[:, ...] = self.list_im[perm, ...]
         self.list_lab[:] = self.list_lab[perm, ...]
 
         self._idx = 0
-        
+
     def next_batch(self, batch_size):
-        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3)) 
+        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3))
         labels_batch = np.zeros(batch_size)
         for i in range(batch_size):
             image = scipy.misc.imread(self.list_im[self._idx])
@@ -115,13 +115,13 @@ class DataLoaderDisk(object):
 
             images_batch[i, ...] =  image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
             labels_batch[i, ...] = self.list_lab[self._idx]
-            
+
             self._idx += 1
             if self._idx == self.num:
                 self._idx = 0
-        
+
         return images_batch, labels_batch
-    
+
     def size(self):
         return self.num
 
