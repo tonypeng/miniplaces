@@ -9,8 +9,8 @@ class Trainer:
                  load_size, fine_size, data_mean, optimizer, learning_rate,
                  rmsprop_decay, momentum, epsilon,
                  iterations,
-                 batch_size, dropout_keep_prob, device, verbose=True,
-                 val_loss_iter_print=10):
+                 batch_size, dropout_keep_prob, device, verbose,
+                 val_loss_iter_print, checkpoint_iterations):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -31,6 +31,7 @@ class Trainer:
         self.device = device
         self.verbose = verbose
         self.val_loss_iter_print = val_loss_iter_print
+        self.checkpoint_iterations = checkpoint_iterations
 
     def train(self):
         # =================================
@@ -62,8 +63,7 @@ class Trainer:
         loader_train = DataLoaderH5(**opt_data_train)
         loader_val = DataLoaderH5(**opt_data_val)
 
-        step_save = 5
-        path_save = './saves/'
+        path_save = './checkpoints/'
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -122,7 +122,7 @@ class Trainer:
                     print("              Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 else:
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
-                if it % step_save == 0:
+                if it % self.checkpoint_iterations == 0:
                     saver.save(sess, path_save, global_step=it)
                     print("Model saved at Iter %d !" %(it))
 
