@@ -14,7 +14,9 @@ class Trainer:
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
+        self.train_data_h5 = train_data_h5
         self.val_data_list = val_data_list
+        self.val_data_h5 = val_data_h5
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.rmsprop_decay = rmsprop_decay
