@@ -1,5 +1,7 @@
 *.h5
 data/
+checkpoints/
+!checkpoints/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

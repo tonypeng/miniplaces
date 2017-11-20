@@ -12,16 +12,16 @@ def ResNet34(x, is_training, opt):
     conv_1 = tf.nn.relu(conv_1)
 
     # 3x3 max pooling, stride 2
-    pool_1 = max_pool(conv1, 3, 2)
+    pool_1 = max_pool(conv_1, 3, 2)
 
     # Resid group 1, 64 features, scale / 2
-    resid_group_1 = resid_group(pool1, 3, 64, 3, downsize_factor=1, init_stddev=_CONV_WEIGHT_STD_DEV)
+    resid_group_1 = resid_group(pool_1, is_training, 3, 64, 3, downsize_factor=1, init_stddev=_CONV_WEIGHT_STD_DEV)
     # Resid group 2, 128 features, scale / 2
-    resid_group_2 = resid_group(resid_group_1, 3, 128, 4, init_stddev=_CONV_WEIGHT_STD_DEV)
+    resid_group_2 = resid_group(resid_group_1, is_training, 3, 128, 4, init_stddev=_CONV_WEIGHT_STD_DEV)
     # Resid group 3, 256 features, scale / 2
-    resid_group_3 = resid_group(resid_group_2, 3, 256, 6, init_stddev=_CONV_WEIGHT_STD_DEV)
+    resid_group_3 = resid_group(resid_group_2, is_training, 3, 256, 6, init_stddev=_CONV_WEIGHT_STD_DEV)
     # Resid group 4, 512 features, scale / 2
-    resid_group_4 = resid_group(resid_group_3, 3, 512, 3, init_stddev=_CONV_WEIGHT_STD_DEV)
+    resid_group_4 = resid_group(resid_group_3, is_training, 3, 512, 3, init_stddev=_CONV_WEIGHT_STD_DEV)
 
     # Global average pooling
     avg_pool = tf.reduce_mean(resid_group_4, [1, 2])

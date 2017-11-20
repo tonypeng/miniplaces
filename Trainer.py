@@ -7,7 +7,7 @@ from DataLoader import *
 class Trainer:
     def __init__(self, net_name, data_root, train_data_list, train_data_h5, val_data_list, val_data_h5,
                  load_size, fine_size, data_mean, optimizer, learning_rate,
-                 rmsprop_decay, rmsprop_momentum, epsilon,
+                 rmsprop_decay, momentum, epsilon,
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose=True,
                  val_loss_iter_print=10):
@@ -20,7 +20,7 @@ class Trainer:
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.rmsprop_decay = rmsprop_decay
-        self.rmsprop_momentum = rmsprop_momentum
+        self.momentum = momentum
         self.epsilon = epsilon
         self.iterations = iterations
         self.batch_size = batch_size
@@ -48,7 +48,7 @@ class Trainer:
             'randomize': True
         }
         opt_data_val = {
-            'data_h5':self.val_data_h5,
+            'data_h5': self.val_data_h5,
             'data_root': self.data_root,
             'data_list': self.val_data_list,
             'load_size': self.load_size,
@@ -61,6 +61,9 @@ class Trainer:
         # loader_val = DataLoaderDisk(**opt_data_val)
         loader_train = DataLoaderH5(**opt_data_train)
         loader_val = DataLoaderH5(**opt_data_val)
+
+        step_save = 5
+        path_save = './saves/'
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -88,6 +91,8 @@ class Trainer:
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
 
             sess.run(tf.global_variables_initializer())
+
+            saver = tf.train.Saver()
 
             it = 0
             for it in range(self.iterations):
@@ -117,6 +122,10 @@ class Trainer:
                     print("              Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 else:
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
+                if step % step_save == 0:
+                    saver.save(sess, path_save, global_step=it, max_to_keep=5)
+                    print("Model saved at Iter %d !" %(step))
+
 
     def _log(self, *args, **kwargs):
         if self.verbose:
@@ -131,6 +140,8 @@ class Trainer:
                         decay=self.rmsprop_decay,
                         momentum=self.rmsprop_momentum,
                         epsilon=self.epsilon)
+        elif self.optimizer == 'momentum':
+            return tf.train.MomentumOptimizer(self.learning_rate, self.momentum)
         raise NotImplementedError
 
     def _construct_net(self, inp, dropout_keep_prob, is_training):
