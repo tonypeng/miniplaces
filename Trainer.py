@@ -92,7 +92,7 @@ class Trainer:
 
             sess.run(tf.global_variables_initializer())
 
-            saver = tf.train.Saver()
+            saver = tf.train.Saver(max_to_keep=5)
 
             it = 0
             for it in range(self.iterations):
@@ -123,7 +123,7 @@ class Trainer:
                 else:
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
                 if it % step_save == 0:
-                    saver.save(sess, path_save, global_step=it, max_to_keep=5)
+                    saver.save(sess, path_save, global_step=it)
                     print("Model saved at Iter %d !" %(it))
 
 
