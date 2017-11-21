@@ -78,7 +78,7 @@ class Trainer:
         loader_train = DataLoaderH5(**opt_data_train)
         loader_val = DataLoaderH5(**opt_data_val)
 
-        path_save = './checkpoints/'
+        path_save = './checkpoints/'+self.model_name+'/'
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
