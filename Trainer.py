@@ -76,7 +76,6 @@ class Trainer:
         loader_val = DataLoaderH5(**opt_data_val)
 
         path_save = './checkpoints/'
-        last5loss = []
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -110,10 +109,12 @@ class Trainer:
             accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 1), tf.float32)) * 100
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
 
-            tf.summary.scalar('loss', loss)
-            tf.summary.scalar('accuracy1', accuracy1)
-            tf.summary.scalar('accuracy5', accuracy5)
-            summary_op = tf.summary.merge_all()
+            loss_training_summary = tf.summary.scalar('loss_training', loss)
+            loss_valid_summary = tf.summary.scalar('loss_validation', loss)
+            acc1_training_summary = tf.summary.scalar('training_accuracy1', accuracy1)
+            acc5_training_summary = tf.summary.scalar('training_accuracy5', accuracy5)
+            acc1_valid_summary = tf.summary.scalar('valid_accuracy1', accuracy1)
+            acc5_valid_summary = tf.summary.scalar('valid_accuracy5', accuracy5)
             writer = tf.summary.FileWriter(self.log_path, graph=tf.get_default_graph())
 
             saver = tf.train.Saver(max_to_keep=5)
@@ -128,33 +129,43 @@ class Trainer:
             while(it < self.iterations):
                 images_batch, labels_batch = loader_train.next_batch(self.batch_size)
 
-                _, summary = sess.run([optimize, summary_op],
+                _ = sess.run(optimize,
                     feed_dict={
                         x: images_batch,
                         y: labels_batch,
                         keep_dropout: self.dropout_keep_prob,
                         is_training: True})
 
-                writer.add_summary(summary, it)
-
                 if it % self.val_loss_iter_print == 0:
                     images_batch_val, labels_batch_val = loader_val.next_batch(self.batch_size)
-                    curr_val_loss, val_acc1, val_acc5 = sess.run([loss, accuracy1, accuracy5],
+                    curr_val_loss, val_acc1, val_acc5, val_loss_summ, val_acc1_summ, val_acc5_summ = sess.run([loss, accuracy1, accuracy5, loss_valid_summary, acc1_valid_summary, acc5_valid_summary],
                                             feed_dict={
                                                 x: images_batch_val,
                                                 y: labels_batch_val,
                                                 keep_dropout: self.dropout_keep_prob,
                                                 is_training: False})
-                    # adjust loss here
+
+                    # adjust loss here                                                                                                                                                                                        │··············
                     self._adjust_learning_rate(curr_val_loss)
+
+                    writer.add_summary(val_loss_summ, it)
+                    writer.add_summary(val_acc1_summ, it)
+                    writer.add_summary(val_acc5_summ, it)
+
                     print("Iteration " + str(it + 1) + " Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 if it % self.train_loss_iter_print == 0:
-                    curr_loss, acc1, acc5 = sess.run([loss, accuracy1, accuracy5],
+                    curr_loss, acc1, acc5, loss_summ, acc1_summ, acc5_summ = sess.run([loss, accuracy1, accuracy5, loss_training_summary, acc1_training_summary, acc5_training_summary],
                                                     feed_dict={
                                                         x: images_batch,
                                                         y: labels_batch,
                                                         keep_dropout: self.dropout_keep_prob,
                                                         is_training: False})
+
+
+                    writer.add_summary(loss_summ, it)
+                    writer.add_summary(acc1_summ, it)
+                    writer.add_summary(acc5_summ, it)
+
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
                 if it % self.checkpoint_iterations == 0:
                     saver.save(sess, path_save, global_step=it)
@@ -213,4 +224,4 @@ class Trainer:
             if recent_loss > old_loss:
                 print ("Dropping learning rate from: " + self.learning_rate)
                 self.learning_rate = self.learning_rate/self.loss_adjustment_factor
-                print ("                       to: " + self.learning_rate)
+                print ("                         to: " + self.learning_rate)
