@@ -222,6 +222,6 @@ class Trainer:
             old_loss = sum(self.lastLosses[:self.loss_sample_interval])/self.loss_sample_interval
             recent_loss = sum(self.lastLosses[2*self.loss_sample_interval:])/self.loss_sample_interval
             if recent_loss > old_loss:
-                print ("Dropping learning rate from: " + self.learning_rate)
+                print ("Dropping learning rate from: " + str(self.learning_rate))
                 self.learning_rate = self.learning_rate/self.loss_adjustment_factor
-                print ("                         to: " + self.learning_rate)
+                print ("                         to: " + str(self.learning_rate))
