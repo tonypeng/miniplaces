@@ -14,6 +14,7 @@ parser.add_argument('--fine_size', type=int, default=110)
 parser.add_argument('--center_mean', type=bool, default=True)
 parser.add_argument('--optimizer', type=str, default='momentum')
 parser.add_argument('--learning_rate', type=float, default=0.1)
+parser.add_argument('--min_learning_rate', type=float, default=1e-5)
 parser.add_argument('--hidden_activation', type=str, default='elu')
 parser.add_argument('--rmsprop_decay', type=float, default=0.9)
 parser.add_argument('--momentum', type=float, default=0.9)
@@ -43,6 +44,7 @@ trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
                     args.train_data_h5, args.val_data_list, args.val_data_h5,
                     args.load_size, args.fine_size,
                     args.center_mean, args.optimizer, args.learning_rate,
+                    args.min_learning_rate,
                     args.hidden_activation,
                     args.rmsprop_decay, args.momentum, args.epsilon,
                     args.weight_decay,

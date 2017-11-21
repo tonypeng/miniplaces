@@ -7,7 +7,7 @@ from DataLoader import *
 
 class Trainer:
     def __init__(self, net_name, data_root, train_data_list, train_data_h5, val_data_list, val_data_h5,
-                 load_size, fine_size, data_mean, optimizer, learning_rate, hidden_activation,
+                 load_size, fine_size, data_mean, optimizer, learning_rate, min_learning_rate, hidden_activation,
                  rmsprop_decay, momentum, epsilon, weight_decay,
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
@@ -22,6 +22,7 @@ class Trainer:
         self.val_data_h5 = val_data_h5
         self.optimizer = optimizer
         self.learning_rate = learning_rate
+        self.min_learning_rate = min_learning_rate
         self.hidden_activation = hidden_activation
         self.rmsprop_decay = rmsprop_decay
         self.momentum = momentum
@@ -154,9 +155,10 @@ class Trainer:
                                                 is_training: False})
 
                     # adjust loss if we need to                                                                                                                                                                                        │··············
-                    if self._should_adjust_learning_rate(curr_val_loss):
+                    if self._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
                         print ("Dropping learning rate from: " + str(curr_learning_rate))
                         curr_learning_rate = curr_learning_rate/self.loss_adjustment_factor
+                        curr_learning_rate = max(curr_learning_rate, self.min_learning_rate)
                         print ("                       to: " + str(curr_learning_rate))
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(val_acc1_summ, it)
@@ -215,6 +217,11 @@ class Trainer:
                         }), 1.0)]
         elif self.net_name == 'resnet34':
             return [(nets.ResNet34(inp, is_training, {
+                        'lambda': self.weight_decay,
+                        'hidden_activation': self.hidden_activation
+                        }), 1.0)]
+        elif self.net_name == 'resnet50':
+            return [(nets.ResNet50(inp, is_training, {
                         'lambda': self.weight_decay,
                         'hidden_activation': self.hidden_activation
                         }), 1.0)]

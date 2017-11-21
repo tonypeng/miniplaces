@@ -66,6 +66,36 @@ def ResNet34(x, is_training, opt):
 
     return fc # output
 
+def ResNet50(x, is_training, opt):
+    weight_decay = opt.get('lambda', None)
+    activation_str = opt.get('hidden_activation', 'relu')
+    activation = get_activation_function(activation_str)
+
+    # 7x7 conv, 64 features, stride 2
+    conv_1 = conv2d(x, 7, 2, 64, init_stddev=_CONV_WEIGHT_STD_DEV, weight_decay=weight_decay)
+    conv_1 = batch_norm(conv_1, is_training)
+    conv_1 = activation(conv_1)
+
+    # 3x3 max pooling, stride 2
+    pool_1 = max_pool(conv_1, 3, 2)
+
+    # Resid group 1, 64 features, scale / 2
+    resid_group_1 = bottleneck_group(pool_1, is_training, 3, 64, 3, downsize_factor=1, init_stddev=_CONV_WEIGHT_STD_DEV, weight_decay=weight_decay, activation=activation)
+    # Resid group 2, 128 features, scale / 2
+    resid_group_2 = bottleneck_group(resid_group_1, is_training, 3, 128, 4, init_stddev=_CONV_WEIGHT_STD_DEV, weight_decay=weight_decay, activation=activation)
+    # Resid group 3, 256 features, scale / 2
+    resid_group_3 = bottleneck_group(resid_group_2, is_training, 3, 256, 6, init_stddev=_CONV_WEIGHT_STD_DEV, weight_decay=weight_decay, activation=activation)
+    # Resid group 4, 512 features, scale / 2
+    resid_group_4 = bottleneck_group(resid_group_3, is_training, 3, 512, 3, init_stddev=_CONV_WEIGHT_STD_DEV, weight_decay=weight_decay, activation=activation)
+
+    # Global average pooling
+    avg_pool = tf.reduce_mean(resid_group_4, [1, 2])
+
+    # Fully-connected layer with 100 classes
+    fc = fully_connected(avg_pool, 100, init_weights_stddev=0.01, weight_decay=weight_decay)
+
+    return fc # output
+
 def AlexNet(x, keep_dropout):
     weights = {
         'wc1': tf.Variable(tf.random_normal([11, 11, 3, 96], stddev=np.sqrt(2. / (11 * 11 * 3)))),

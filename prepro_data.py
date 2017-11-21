@@ -14,7 +14,9 @@ def createH5(params):
 	list_lab = []
 	with open(params['data_list'], 'r') as f:
 	    for line in f:
-	        path, lab =line.rstrip().split(' ')
+	        lineStrip = line.rstrip().split(' ')
+	        path = lineStrip[0]
+	        lab = lineStrip[1]
 	        list_im.append(os.path.join(params['data_root'], path))
 	        list_lab.append(int(lab))
 	list_im = np.array(list_im, np.object)
@@ -59,5 +61,16 @@ if __name__=='__main__':
     		'data_list': 'data/val.txt'
 	}
 
-	createH5(params_train)
-	createH5(params_val)
+	params_test = {
+		'name': 'miniplaces',
+		'split': 'test',
+		'img_resize': 128,
+		'data_root': 'data/images/',	# MODIFY PATH ACCORDINGLY
+    		'data_list': 'predictions.txt'
+	}
+
+
+
+	createH5(params_test)
+	# createH5(params_train)
+	# createH5(params_val)

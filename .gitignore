@@ -4,6 +4,7 @@ checkpoints/
 !checkpoints/.gitkeep
 logs/
 !logs/.gitkeep
+pred.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

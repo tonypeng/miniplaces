@@ -16,10 +16,12 @@ class Evaluator:
         self.device = device
         self.data_mean = data_mean
         self.hidden_activation = hidden_activation
+        self.test_data_h5 = 'miniplaces_128_test.h5'
 
     def evaluate(self):
         # Construct dataloader
         opt_data_eval = {
+            'data_h5': self.test_data_h5,
             'data_root': self.data_root,
             'data_list': self.data_list,
             'data_mean': self.data_mean,
@@ -28,7 +30,7 @@ class Evaluator:
             'randomize': False
         }
 
-        loader = DataLoaderDisk(**opt_data_eval)
+        loader = DataLoaderH5(**opt_data_eval)
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -50,11 +52,11 @@ class Evaluator:
 
             img_num = 0
             while img_num < loader.size():
-                images_batch, labels_batch = loader.up_to(self.batch_size)
+                images_batch, labels_batch = loader.next_batch(self.batch_size)
 
                 # Evaluate
                 top5_res = sess.run([top5], feed_dict={
-                                        x: images_batch_val,
+                                        x: images_batch,
                                         is_training: False})
 
                 for particular_top_5 in top5_res:
