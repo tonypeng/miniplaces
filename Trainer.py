@@ -1,7 +1,7 @@
 import nets
 import os
 import inception_v4
-
+import random
 import tensorflow as tf
 from DataLoader import *
 
@@ -12,8 +12,8 @@ class Trainer:
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
                  train_loss_iter_print, val_loss_iter_print, checkpoint_iterations,
-                 checkpoint_name, checkpoint_step, model_name, log_path,
-                 loss_sample_interval, loss_adjustment_factor):
+                 checkpoint_name, start_from_iteration, model_name, log_path,
+                 loss_adjustment_sample_interval, loss_adjustment_factor, loss_adjustment_coin_flip_prob):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -39,12 +39,13 @@ class Trainer:
         self.val_loss_iter_print = val_loss_iter_print
         self.checkpoint_iterations = checkpoint_iterations
         self.checkpoint_name = checkpoint_name
-        self.checkpoint_step = checkpoint_step
+        self.start_from_iteration = start_from_iteration
         self.model_name = model_name
         self.log_path = log_path
-        self.loss_sample_interval = loss_sample_interval
+        self.loss_adjustment_sample_interval = loss_adjustment_sample_interval
         self.loss_adjustment_factor = loss_adjustment_factor
-        self.lastLosses = []
+        self.loss_adjustment_coin_flip_prob = loss_adjustment_coin_flip_prob
+        self.loss_history = []
 
     def train(self):
         # =================================
@@ -127,7 +128,7 @@ class Trainer:
             it = 0
             if len(self.checkpoint_name)>1:
                 saver.restore(sess, self.checkpoint_name)
-                it = self.checkpoint_step
+                it = self.start_from_iteration
             else:
                 sess.run(tf.global_variables_initializer())
 
@@ -233,12 +234,12 @@ class Trainer:
         return tf.cond(pred, lambda: _distort_image(inp), lambda: inp)
 
     def _should_adjust_learning_rate(self, val_loss):
-        self.lastLosses.append(val_loss)
-        if len(self.lastLosses) > 3*self.loss_sample_interval:
-            self.lastLosses.pop(0)
-            old_loss = sum(self.lastLosses[:self.loss_sample_interval])/self.loss_sample_interval
-            recent_loss = sum(self.lastLosses[2*self.loss_sample_interval:])/self.loss_sample_interval
+        self.loss_history.append(val_loss)
+        if len(self.loss_history) > 3*self.loss_adjustment_sample_interval:
+            self.loss_history.pop(0)
+            old_loss = sum(self.loss_history[:self.loss_adjustment_sample_interval])/self.loss_adjustment_sample_interval
+            recent_loss = sum(self.loss_history[2*self.loss_adjustment_sample_interval:])/self.loss_adjustment_sample_interval
             if recent_loss > old_loss:
-                self.lastLosses = []
-                return True
+                self.loss_history = []
+                return random.uniform(0, 1) < self.loss_adjustment_coin_flip_prob
         return False

@@ -28,11 +28,12 @@ parser.add_argument('--val_loss_iter_print', type=int, default=20)
 parser.add_argument('--train_loss_iter_print', type=int, default=5)
 parser.add_argument('--checkpoint_iterations', type=int, default=1000)
 parser.add_argument('--checkpoint_name', type=str, default='')
-parser.add_argument('--checkpoint_step', type=int, default=0)
+parser.add_argument('--start_from_iteration', type=int, default=0)
 parser.add_argument('--model_name', type=str, default='model')
 parser.add_argument('--log_path', type=str, default='logs/')
-parser.add_argument('--loss_sample_interval', type=int, default=15)
+parser.add_argument('--loss_adjustment_sample_interval', type=int, default=15)
 parser.add_argument('--loss_adjustment_factor', type=float, default=2.)
+parser.add_argument('--loss_adjustment_coin_flip_prob', type=float, default=1.0)
 args = parser.parse_args()
 
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
@@ -49,6 +50,7 @@ trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
                     args.batch_size, args.dropout_keep_prob, args.device,
                     args.verbose, args.train_loss_iter_print, args.val_loss_iter_print,
                     args.checkpoint_iterations,
-                    args.checkpoint_name, args.checkpoint_step, args.model_name,
-                    args.log_path, args.loss_sample_interval, args.loss_adjustment_factor)
+                    args.checkpoint_name, args.start_from_iteration, args.model_name,
+                    args.log_path, args.loss_adjustment_sample_interval, args.loss_adjustment_factor,
+                    args.loss_adjustment_coin_flip_prob)
 trainer.train()
