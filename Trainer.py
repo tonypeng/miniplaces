@@ -79,7 +79,6 @@ class Trainer:
         loader_val = DataLoaderH5(**opt_data_val)
 
         path_save = './checkpoints/'
-        last5loss = []
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -149,6 +148,7 @@ class Trainer:
                                             feed_dict={
                                                 x: images_batch_val,
                                                 y: labels_batch_val,
+                                                learning_rate: curr_learning_rate,
                                                 keep_dropout: self.dropout_keep_prob,
                                                 is_training: False})
 
@@ -168,6 +168,7 @@ class Trainer:
                                                     feed_dict={
                                                         x: images_batch,
                                                         y: labels_batch,
+                                                        learning_rate: curr_learning_rate,
                                                         keep_dropout: self.dropout_keep_prob,
                                                         is_training: False})
 
