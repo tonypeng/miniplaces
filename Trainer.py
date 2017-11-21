@@ -71,6 +71,8 @@ class Trainer:
             'randomize': False
         }
 
+        curr_learning_rate = self.learning_rate
+
         # loader_train = DataLoaderDisk(**opt_data_train)
         # loader_val = DataLoaderDisk(**opt_data_val)
         loader_train = DataLoaderH5(**opt_data_train)
@@ -82,6 +84,7 @@ class Trainer:
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
                 config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+            learning_rate = tf.placeholder(tf.float32, None)
             x = tf.placeholder(
                 tf.float32, [None, self.fine_size, self.fine_size, 3])
             y = tf.placeholder(tf.int64, None)
@@ -105,12 +108,13 @@ class Trainer:
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
-                optimizer = self._construct_optimizer()
+                optimizer = self._construct_optimizer(learning_rate)
                 optimize = optimizer.minimize(loss)
 
             accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 1), tf.float32)) * 100
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
 
+            learning_rate_summary = tf.summary.scalar('learning_rate', learning_rate)
             loss_training_summary = tf.summary.scalar('loss_training', loss)
             loss_valid_summary = tf.summary.scalar('loss_validation', loss)
             acc1_training_summary = tf.summary.scalar('training_accuracy1', accuracy1)
@@ -135,12 +139,13 @@ class Trainer:
                     feed_dict={
                         x: images_batch,
                         y: labels_batch,
+                        learning_rate: curr_learning_rate,
                         keep_dropout: self.dropout_keep_prob,
                         is_training: True})
 
                 if it % self.val_loss_iter_print == 0:
                     images_batch_val, labels_batch_val = loader_val.next_batch(self.batch_size)
-                    curr_val_loss, val_acc1, val_acc5, val_loss_summ, val_acc1_summ, val_acc5_summ = sess.run([loss, accuracy1, accuracy5, loss_valid_summary, acc1_valid_summary, acc5_valid_summary],
+                    curr_val_loss, val_acc1, val_acc5, val_loss_summ, val_acc1_summ, val_acc5_summ, learning_rate_summ = sess.run([loss, accuracy1, accuracy5, loss_valid_summary, acc1_valid_summary, acc5_valid_summary, learning_rate_summary],
                                             feed_dict={
                                                 x: images_batch_val,
                                                 y: labels_batch_val,
@@ -148,11 +153,14 @@ class Trainer:
                                                 is_training: False})
 
                     # adjust loss if we need to                                                                                                                                                                                        │··············
-                    self._adjust_learning_rate(curr_val_loss)
-
+                    if self._should_adjust_learning_rate(curr_val_loss):
+                        print ("Dropping learning rate from: " + str(curr_learning_rate))
+                        curr_learning_rate = curr_learning_rate/self.loss_adjustment_factor
+                        print ("                       to: " + str(curr_learning_rate))
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(val_acc1_summ, it)
                     writer.add_summary(val_acc5_summ, it)
+                    writer.add_summary(learning_rate_summ, it)
 
                     print("Iteration " + str(it + 1) + ": Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 if it % self.train_loss_iter_print == 0:
@@ -179,17 +187,17 @@ class Trainer:
         if self.verbose:
             print(*args, **kwargs)
 
-    def _construct_optimizer(self):
+    def _construct_optimizer(self, learning_rate):
         if self.optimizer == 'adam':
-            return tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            return tf.train.AdamOptimizer(learning_rate=learning_rate)
         elif self.optimizer == 'rmsprop':
             return tf.train.RMSPropOptimizer(
-                        learning_rate=self.learning_rate,
+                        learning_rate=learning_rate,
                         decay=self.rmsprop_decay,
                         momentum=self.rmsprop_momentum,
                         epsilon=self.epsilon)
         elif self.optimizer == 'momentum':
-            return tf.train.MomentumOptimizer(self.learning_rate, self.momentum)
+            return tf.train.MomentumOptimizer(learning_rate, self.momentum)
         raise NotImplementedError
 
     def _construct_net(self, inp, dropout_keep_prob, is_training):
@@ -223,14 +231,13 @@ class Trainer:
 
         return tf.cond(pred, lambda: _distort_image(inp), lambda: inp)
 
-    def _adjust_learning_rate(self, val_loss):
+    def _should_adjust_learning_rate(self, val_loss):
         self.lastLosses.append(val_loss)
         if len(self.lastLosses) > 3*self.loss_sample_interval:
             self.lastLosses.pop(0)
             old_loss = sum(self.lastLosses[:self.loss_sample_interval])/self.loss_sample_interval
             recent_loss = sum(self.lastLosses[2*self.loss_sample_interval:])/self.loss_sample_interval
             if recent_loss > old_loss:
-                print ("Dropping learning rate from: " + str(self.learning_rate))
-                self.learning_rate = self.learning_rate/self.loss_adjustment_factor
-                print ("                       to: " + str(self.learning_rate))
                 self.lastLosses = []
+                return True
+        return False
