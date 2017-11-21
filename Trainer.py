@@ -1,4 +1,5 @@
 import nets
+import os
 import inception_v4
 
 import tensorflow as tf
@@ -76,6 +77,7 @@ class Trainer:
         loader_val = DataLoaderH5(**opt_data_val)
 
         path_save = './checkpoints/'
+        last5loss = []
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -115,7 +117,7 @@ class Trainer:
             acc5_training_summary = tf.summary.scalar('training_accuracy5', accuracy5)
             acc1_valid_summary = tf.summary.scalar('valid_accuracy1', accuracy1)
             acc5_valid_summary = tf.summary.scalar('valid_accuracy5', accuracy5)
-            writer = tf.summary.FileWriter(self.log_path, graph=tf.get_default_graph())
+            writer = tf.summary.FileWriter(os.path.join(self.log_path, self.model_name), graph=tf.get_default_graph())
 
             saver = tf.train.Saver(max_to_keep=5)
 
@@ -129,7 +131,7 @@ class Trainer:
             while(it < self.iterations):
                 images_batch, labels_batch = loader_train.next_batch(self.batch_size)
 
-                _ = sess.run(optimize,
+                sess.run(optimize,
                     feed_dict={
                         x: images_batch,
                         y: labels_batch,
@@ -145,14 +147,14 @@ class Trainer:
                                                 keep_dropout: self.dropout_keep_prob,
                                                 is_training: False})
 
-                    # adjust loss here                                                                                                                                                                                        │··············
+                    # adjust loss if we need to                                                                                                                                                                                        │··············
                     self._adjust_learning_rate(curr_val_loss)
 
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(val_acc1_summ, it)
                     writer.add_summary(val_acc5_summ, it)
 
-                    print("Iteration " + str(it + 1) + " Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
+                    print("Iteration " + str(it + 1) + ": Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 if it % self.train_loss_iter_print == 0:
                     curr_loss, acc1, acc5, loss_summ, acc1_summ, acc5_summ = sess.run([loss, accuracy1, accuracy5, loss_training_summary, acc1_training_summary, acc5_training_summary],
                                                     feed_dict={
@@ -209,11 +211,17 @@ class Trainer:
         raise NotImplementedError
 
     def _preprocess_data(self, inp):
-        inp = tf.map_fn(lambda x: tf.image.random_hue(x, max_delta = .1), inp)
-        inp = tf.map_fn(lambda x: tf.image.random_brightness(x, max_delta = .1), inp)
-        inp = tf.map_fn(lambda x: tf.image.random_contrast(x, lower=.8, upper=1.2), inp)
-        inp = tf.map_fn(lambda x: tf.image.random_saturation(x, lower=.8, upper=1.2), inp)
-        return inp
+        p = tf.random_uniform(shape=[], minval=0., maxval=1., dtype=tf.float32)
+        pred = tf.less(p, 0.5)
+
+        def _distort_image(inp):
+            outp = tf.map_fn(lambda x: tf.image.random_hue(x, max_delta = .1), inp)
+            outp = tf.map_fn(lambda x: tf.image.random_brightness(x, max_delta = .1), outp)
+            outp = tf.map_fn(lambda x: tf.image.random_contrast(x, lower=.8, upper=1.2), outp)
+            outp = tf.map_fn(lambda x: tf.image.random_saturation(x, lower=.8, upper=1.2), outp)
+            return outp
+
+        return tf.cond(pred, lambda: _distort_image(inp), lambda: inp)
 
     def _adjust_learning_rate(self, val_loss):
         self.lastLosses.append(val_loss)
@@ -224,4 +232,5 @@ class Trainer:
             if recent_loss > old_loss:
                 print ("Dropping learning rate from: " + str(self.learning_rate))
                 self.learning_rate = self.learning_rate/self.loss_adjustment_factor
-                print ("                         to: " + str(self.learning_rate))
+                print ("                       to: " + str(self.learning_rate))
+                self.lastLosses = []
