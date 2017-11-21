@@ -56,6 +56,38 @@ class DataLoaderH5(object):
 
         return images_batch, labels_batch
 
+    def up_to(self, batch_size):
+        labels_batch = np.zeros(batch_size)
+        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3))
+
+        for i in range(batch_size):
+            image = self.im_set[self._idx]
+            image = image.astype(np.float32)/255. - self.data_mean
+            if self.randomize:
+                flip = np.random.random_integers(0, 1)
+                if flip == 1:
+                    image = image[:,::-1,:]
+                offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
+                offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
+                # image = scipy.ndimage.interpolation.rotate(image, np.random.randn()*10., mode='constant')
+            else:
+                offset_h = (self.load_size-self.fine_size)//2
+                offset_w = (self.load_size-self.fine_size)//2
+
+            images_batch[i, ...] = image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
+            labels_batch[i, ...] = self.lab_set[self._idx]
+
+            self._idx += 1
+            if self._idx == self.num:
+                images_batch = images_batch[:i+1, :, : :]
+                labels_batch = labels_batch[:i+1, :, : :]
+                self._idx = 0
+                if self.randomize:
+                    self.shuffle()
+                break
+
+        return images_batch, labels_batch
+
     def size(self):
         return self.num
 
@@ -121,6 +153,36 @@ class DataLoaderDisk(object):
             self._idx += 1
             if self._idx == self.num:
                 self._idx = 0
+
+        return images_batch, labels_batch
+
+    def up_to(self, batch_size):
+        images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3))
+        labels_batch = np.zeros(batch_size)
+        for i in range(batch_size):
+            image = scipy.misc.imread(self.list_im[self._idx])
+            image = scipy.misc.imresize(image, (self.load_size, self.load_size))
+            image = image.astype(np.float32)/255.
+            image = image - self.data_mean
+            if self.randomize:
+                flip = np.random.random_integers(0, 1)
+                if flip == 1:
+                    image = image[:,::-1,:]
+                offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
+                offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
+            else:
+                offset_h = (self.load_size-self.fine_size)//2
+                offset_w = (self.load_size-self.fine_size)//2
+
+            images_batch[i, ...] =  image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
+            labels_batch[i, ...] = self.list_lab[self._idx]
+
+            self._idx += 1
+            if self._idx == self.num:
+                images_batch = images_batch[:i+1, :, : :]
+                labels_batch = labels_batch[:i+1, :, : :]
+                self._idx = 0
+                break
 
         return images_batch, labels_batch
 

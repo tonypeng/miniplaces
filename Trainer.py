@@ -71,13 +71,12 @@ class Trainer:
             'data_mean': self.data_mean,
             'randomize': False
         }
-
-        curr_learning_rate = self.learning_rate
-
         # loader_train = DataLoaderDisk(**opt_data_train)
         # loader_val = DataLoaderDisk(**opt_data_val)
         loader_train = DataLoaderH5(**opt_data_train)
         loader_val = DataLoaderH5(**opt_data_val)
+
+        curr_learning_rate = self.learning_rate
 
         path_save = './checkpoints/'+self.model_name+'/'
 
@@ -111,6 +110,9 @@ class Trainer:
                 optimizer = self._construct_optimizer(learning_rate)
                 optimize = optimizer.minimize(loss)
 
+
+            sess.run(tf.global_variables_initializer())
+
             accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 1), tf.float32)) * 100
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
 
@@ -129,8 +131,6 @@ class Trainer:
             if len(self.checkpoint_name)>1:
                 saver.restore(sess, self.checkpoint_name)
                 it = self.start_from_iteration
-            else:
-                sess.run(tf.global_variables_initializer())
 
             while(it < self.iterations):
                 images_batch, labels_batch = loader_train.next_batch(self.batch_size)
