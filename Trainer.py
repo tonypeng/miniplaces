@@ -6,12 +6,12 @@ from DataLoader import *
 
 class Trainer:
     def __init__(self, net_name, data_root, train_data_list, train_data_h5, val_data_list, val_data_h5,
-                 load_size, fine_size, data_mean, optimizer, learning_rate,
-                 rmsprop_decay, momentum, epsilon,
+                 load_size, fine_size, data_mean, optimizer, learning_rate, hidden_activation,
+                 rmsprop_decay, momentum, epsilon, weight_decay,
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
-                 val_loss_iter_print, checkpoint_iterations,
-                 checkpoint_name, checkpoint_step, model_name):
+                 train_loss_iter_print, val_loss_iter_print, checkpoint_iterations,
+                 checkpoint_name, checkpoint_step, model_name, log_path):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -20,9 +20,11 @@ class Trainer:
         self.val_data_h5 = val_data_h5
         self.optimizer = optimizer
         self.learning_rate = learning_rate
+        self.hidden_activation = hidden_activation
         self.rmsprop_decay = rmsprop_decay
         self.momentum = momentum
         self.epsilon = epsilon
+        self.weight_decay = weight_decay
         self.iterations = iterations
         self.batch_size = batch_size
         self.dropout_keep_prob = dropout_keep_prob
@@ -31,11 +33,13 @@ class Trainer:
         self.data_mean = data_mean
         self.device = device
         self.verbose = verbose
+        self.train_loss_iter_print = train_loss_iter_print
         self.val_loss_iter_print = val_loss_iter_print
         self.checkpoint_iterations = checkpoint_iterations
         self.checkpoint_name = checkpoint_name
         self.checkpoint_step = checkpoint_step
         self.model_name = model_name
+        self.log_path = log_path
 
     def train(self):
         # =================================
@@ -78,8 +82,10 @@ class Trainer:
             keep_dropout = tf.placeholder(tf.float32)
             is_training = tf.placeholder(tf.bool, name='is_training')
 
+            x_preproc = tf.cond(is_training, lambda: self._preprocess_data(x), lambda: x)
+
             with tf.variable_scope(self.model_name):
-                net = self._construct_net(x, keep_dropout, is_training)
+                net = self._construct_net(x_preproc, keep_dropout, is_training)
 
             losses = 0
             for outp in net:
@@ -87,6 +93,10 @@ class Trainer:
                 losses += weight * tf.nn.sparse_softmax_cross_entropy_with_logits(
                         labels=y, logits=logits)
             loss = tf.reduce_mean(losses)
+            if self.weight_decay is not None:
+                regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
+                loss = loss + regularizer
+
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
                 optimizer = self._construct_optimizer()
@@ -94,6 +104,12 @@ class Trainer:
 
             accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 1), tf.float32)) * 100
             accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(net[0][0], y, 5), tf.float32)) * 100
+
+            tf.summary.scalar('loss', loss)
+            tf.summary.scalar('accuracy1', accuracy1)
+            tf.summary.scalar('accuracy5', accuracy5)
+            summary_op = tf.summary.merge_all()
+            writer = tf.summary.FileWriter(self.log_path, graph=tf.get_default_graph())
 
             saver = tf.train.Saver(max_to_keep=5)
 
@@ -107,18 +123,15 @@ class Trainer:
             while(it < self.iterations):
                 images_batch, labels_batch = loader_train.next_batch(self.batch_size)
 
-                sess.run(optimize,
+                _, summary = sess.run([optimize, summary_op],
                     feed_dict={
                         x: images_batch,
                         y: labels_batch,
                         keep_dropout: self.dropout_keep_prob,
                         is_training: True})
-                curr_loss, acc1, acc5 = sess.run([loss, accuracy1, accuracy5],
-                                                feed_dict={
-                                                    x: images_batch,
-                                                    y: labels_batch,
-                                                    keep_dropout: self.dropout_keep_prob,
-                                                    is_training: False})
+
+                writer.add_summary(summary, it)
+
                 if it % self.val_loss_iter_print == 0:
                     images_batch_val, labels_batch_val = loader_val.next_batch(self.batch_size)
                     curr_val_loss, val_acc1, val_acc5 = sess.run([loss, accuracy1, accuracy5],
@@ -127,9 +140,15 @@ class Trainer:
                                                 y: labels_batch_val,
                                                 keep_dropout: self.dropout_keep_prob,
                                                 is_training: False})
-                    print("Iteration " + str(it + 1) + ": Training Loss=" + str(curr_loss) + "; Val Loss=" + str(curr_val_loss))
-                    print("              Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
-                else:
+
+                    print("Iteration " + str(it + 1) + " Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
+                if it % self.train_loss_iter_print == 0:
+                    curr_loss, acc1, acc5 = sess.run([loss, accuracy1, accuracy5],
+                                                    feed_dict={
+                                                        x: images_batch,
+                                                        y: labels_batch,
+                                                        keep_dropout: self.dropout_keep_prob,
+                                                        is_training: False})
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss) + "; Acc1="+str(acc1)+"%; Acc5="+str(acc5)+"%")
                 if it % self.checkpoint_iterations == 0:
                     saver.save(sess, path_save, global_step=it)
@@ -160,6 +179,21 @@ class Trainer:
         elif self.net_name == 'inception':
             logits, end_points = inception_v4.inception_v4(inp, num_classes=100, dropout_keep_prob=self.dropout_keep_prob)
             return [(logits, 1.0), (end_points['AuxLogits'], 0.4)]
+        elif self.net_name == 'resnet18':
+            return [(nets.ResNet18(inp, is_training, {
+                        'lambda': self.weight_decay,
+                        'hidden_activation': self.hidden_activation
+                        }), 1.0)]
         elif self.net_name == 'resnet34':
-            return [(nets.ResNet34(inp, is_training, {}), 1.0)]
+            return [(nets.ResNet34(inp, is_training, {
+                        'lambda': self.weight_decay,
+                        'hidden_activation': self.hidden_activation
+                        }), 1.0)]
         raise NotImplementedError
+
+    def _preprocess_data(self, inp):
+        inp = tf.map_fn(lambda x: tf.image.random_hue(x, max_delta = .1), inp)
+        inp = tf.map_fn(lambda x: tf.image.random_brightness(x, max_delta = .1), inp)
+        inp = tf.map_fn(lambda x: tf.image.random_contrast(x, lower=.8, upper=1.2), inp)
+        inp = tf.map_fn(lambda x: tf.image.random_saturation(x, lower=.8, upper=1.2), inp)
+        return inp
