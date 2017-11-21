@@ -11,7 +11,8 @@ class Trainer:
                  iterations,
                  batch_size, dropout_keep_prob, device, verbose,
                  train_loss_iter_print, val_loss_iter_print, checkpoint_iterations,
-                 checkpoint_name, checkpoint_step, model_name, log_path):
+                 checkpoint_name, checkpoint_step, model_name, log_path,
+                 loss_sample_interval, loss_adjustment_factor):
         self.net_name = net_name
         self.data_root = data_root
         self.train_data_list = train_data_list
@@ -40,6 +41,9 @@ class Trainer:
         self.checkpoint_step = checkpoint_step
         self.model_name = model_name
         self.log_path = log_path
+        self.loss_sample_interval = loss_sample_interval
+        self.loss_adjustment_factor = loss_adjustment_factor
+        self.lastLosses = []
 
     def train(self):
         # =================================
@@ -72,6 +76,7 @@ class Trainer:
         loader_val = DataLoaderH5(**opt_data_val)
 
         path_save = './checkpoints/'
+        last5loss = []
 
         g = tf.Graph()
         with g.as_default(), g.device(self.device), tf.Session(
@@ -140,7 +145,8 @@ class Trainer:
                                                 y: labels_batch_val,
                                                 keep_dropout: self.dropout_keep_prob,
                                                 is_training: False})
-
+                    # adjust loss here
+                    self._adjust_learning_rate(curr_val_loss)
                     print("Iteration " + str(it + 1) + " Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 if it % self.train_loss_iter_print == 0:
                     curr_loss, acc1, acc5 = sess.run([loss, accuracy1, accuracy5],
@@ -197,3 +203,14 @@ class Trainer:
         inp = tf.map_fn(lambda x: tf.image.random_contrast(x, lower=.8, upper=1.2), inp)
         inp = tf.map_fn(lambda x: tf.image.random_saturation(x, lower=.8, upper=1.2), inp)
         return inp
+
+    def _adjust_learning_rate(self, val_loss):
+        self.lastLosses.append(val_loss)
+        if len(self.lastLosses) > 3*self.loss_sample_interval:
+            self.lastLosses.pop(0)
+            old_loss = sum(self.lastLosses[:self.loss_sample_interval])/self.loss_sample_interval
+            recent_loss = sum(self.lastLosses[2*self.loss_sample_interval:])/self.loss_sample_interval
+            if recent_loss > old_loss:
+                print ("Dropping learning rate from: " + self.learning_rate)
+                self.learning_rate = self.learning_rate/self.loss_adjustment_factor
+                print ("                       to: " + self.learning_rate)

@@ -20,7 +20,7 @@ parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--epsilon', type=float, default=1e-2)
 parser.add_argument('--weight_decay', type=float, default=0.0001)
 parser.add_argument('--iterations', type=int, default=100000)
-parser.add_argument('--batch_size', type=int, default=1024)
+parser.add_argument('--batch_size', type=int, default=256)
 parser.add_argument('--dropout_keep_prob', type=float, default=0.8)
 parser.add_argument('--device', type=str, default='/gpu:0')
 parser.add_argument('--verbose', type=bool, default=True)
@@ -31,6 +31,8 @@ parser.add_argument('--checkpoint_name', type=str, default='')
 parser.add_argument('--checkpoint_step', type=int, default=0)
 parser.add_argument('--model_name', type=str, default='model')
 parser.add_argument('--log_path', type=str, default='logs/')
+parser.add_argument('--loss_sample_interval', type=int, default=15)
+parser.add_argument('--loss_adjustment_factor', type=float, default=2.)
 args = parser.parse_args()
 
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
@@ -48,5 +50,5 @@ trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
                     args.verbose, args.train_loss_iter_print, args.val_loss_iter_print,
                     args.checkpoint_iterations,
                     args.checkpoint_name, args.checkpoint_step, args.model_name,
-                    args.log_path)
+                    args.log_path, args.loss_sample_interval, args.loss_adjustment_factor)
 trainer.train()
