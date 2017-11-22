@@ -123,9 +123,10 @@ class DataLoaderDisk(object):
         print('# Images found:', self.num)
 
         # permutation
-        perm = np.random.permutation(self.num)
-        self.list_im[:, ...] = self.list_im[perm, ...]
-        self.list_lab[:] = self.list_lab[perm, ...]
+        if self.randomize:
+            perm = np.random.permutation(self.num)
+            self.list_im[:, ...] = self.list_im[perm, ...]
+            self.list_lab[:] = self.list_lab[perm, ...]
 
         self._idx = 0
 
