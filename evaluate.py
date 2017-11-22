@@ -16,8 +16,7 @@ parser.add_argument('--center_mean', type=bool, default=True)
 parser.add_argument('--hidden_activation', type=str, default='elu')
 args = parser.parse_args()
 
-data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
-                            if args.center_mean else np.zeros(3))
+data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]) if args.center_mean else np.zeros(3)
 
 evaluator = Evaluator(args.arch, args.model_names, args.model_paths,
                         args.data_root, args.data_list,

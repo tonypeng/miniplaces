@@ -60,10 +60,9 @@ class Evaluator:
                                         y: labels_batch,
                                         is_training: False})
 
-                print(acc5_res)
-                # for particular_top_5 in top5_res.indices:
-                #     print('test/'+str(img_num).zfill(8)+'.jpg '+(' '.join(str(c) for c in particular_top_5)))
-                #     img_num += 1
+                for particular_top_5 in top5_res.indices:
+                    print('test/'+str(img_num).zfill(8)+'.jpg '+(' '.join(str(c) for c in particular_top_5)))
+                    img_num += 1
 
     def _construct_net(self, inp, is_training):
         if self.arch == 'alexnet':
@@ -77,6 +76,10 @@ class Evaluator:
                         })
         elif self.arch == 'resnet34':
             return nets.ResNet34(inp, is_training, {
+                        'hidden_activation': self.hidden_activation
+                        })
+        elif self.arch == 'resnet50':
+            return nets.ResNet50(inp, is_training, {
                         'hidden_activation': self.hidden_activation
                         })
         raise NotImplementedError

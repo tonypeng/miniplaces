@@ -37,13 +37,12 @@ parser.add_argument('--loss_adjustment_factor', type=float, default=2.)
 parser.add_argument('--loss_adjustment_coin_flip_prob', type=float, default=1.0)
 args = parser.parse_args()
 
-data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]
-                            if args.center_mean else np.zeros(3))
+data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842]) if args.center_mean else np.zeros(3)
 
 trainer = Trainer(args.net_name, args.data_root, args.train_data_list,
                     args.train_data_h5, args.val_data_list, args.val_data_h5,
                     args.load_size, args.fine_size,
-                    args.center_mean, args.optimizer, args.learning_rate,
+                    data_mean, args.optimizer, args.learning_rate,
                     args.min_learning_rate,
                     args.hidden_activation,
                     args.rmsprop_decay, args.momentum, args.epsilon,
