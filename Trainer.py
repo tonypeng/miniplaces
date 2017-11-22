@@ -165,7 +165,7 @@ class Trainer:
                     writer.add_summary(val_acc5_summ, it)
                     writer.add_summary(learning_rate_summ, it)
 
-                    print("Iteration " + str(it + 1) + ": Val Loss=" + str(curr_val_loss) + "%; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
+                    print("Iteration " + str(it + 1) + ": Val Loss=" + str(curr_val_loss) + "; Val Acc1=" + str(val_acc1) + "%; Val Acc5="+str(val_acc5)+"%")
                 if it % self.train_loss_iter_print == 0:
                     curr_loss, acc1, acc5, loss_summ, acc1_summ, acc5_summ = sess.run([loss, accuracy1, accuracy5, loss_training_summary, acc1_training_summary, acc5_training_summary],
                                                     feed_dict={

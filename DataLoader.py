@@ -179,8 +179,8 @@ class DataLoaderDisk(object):
 
             self._idx += 1
             if self._idx == self.num:
-                images_batch = images_batch[i, ...]
-                labels_batch = labels_batch[i, ...]
+                images_batch = images_batch[:i+1, ...]
+                labels_batch = labels_batch[:i+1, ...]
                 self._idx = 0
                 break
 
