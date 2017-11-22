@@ -48,7 +48,7 @@ if __name__=='__main__':
 	params_train = {
 		'name': 'miniplaces',
 		'split': 'train',
-		'img_resize': 128,
+		'img_resize': 256,
 		'data_root': 'data/images/',	# MODIFY PATH ACCORDINGLY
     		'data_list': 'data/train.txt'
 	}
@@ -56,7 +56,7 @@ if __name__=='__main__':
 	params_val = {
 		'name': 'miniplaces',
 		'split': 'val',
-		'img_resize': 128,
+		'img_resize': 256,
 		'data_root': 'data/images/',	# MODIFY PATH ACCORDINGLY
     		'data_list': 'data/val.txt'
 	}
@@ -64,7 +64,7 @@ if __name__=='__main__':
 	params_test = {
 		'name': 'miniplaces',
 		'split': 'test',
-		'img_resize': 128,
+		'img_resize': 256,
 		'data_root': 'data/images/',	# MODIFY PATH ACCORDINGLY
     		'data_list': 'predictions.txt'
 	}
